@@ -4,17 +4,17 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const API_KEY = process.env.STEAM_API_KEY;
+const STEAM_API_KEY = process.env.STEAM_API_KEY;
 
 app.get('/games', async (req, res) => {
     const username = req.query.username;
     if (!username) return res.status(400).json({ error: "Missing username" });
 
     try {
-        // 1. Resolve vanity URL
+    
         const resolveResp = await axios.get(`https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/`, {
             params: {
-                key: API_KEY,
+                key: STEAM_API_KEY,
                 vanityurl: username
             }
         });
@@ -22,10 +22,10 @@ app.get('/games', async (req, res) => {
         const steamid = resolveResp.data.response.steamid;
         if (!steamid) return res.status(404).json({ error: "Could not resolve user" });
 
-        // 2. Get owned games
+    
         const gamesResp = await axios.get(`https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/`, {
             params: {
-                key: API_KEY,
+                key: STEAM_API_KEY,
                 steamid,
                 include_appinfo: true,
                 include_played_free_games: true
