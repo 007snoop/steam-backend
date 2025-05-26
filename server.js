@@ -35,7 +35,7 @@ async function resolveVanityUrl(vanityName) {
 					},
 				});
 
-				if (data.response.sucess !== 1) return null;
+				if (data.response.success !== 1) return null;
 			return data.response.steamid;
 	});
 }
