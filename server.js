@@ -6,30 +6,43 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const STEAM_API_KEY = process.env.STEAM_API_KEY;
 
-app.get("/games", async (req, res) => {
-	const username = req.query.username;
-	if (!username) return res.status(400).json({ error: "Missing username" });
-	let steamid;
-	try {
-		if (/^\d{17}$/.test(username)) {
-			steamid = username;
-		} else {
-			const resolveResp = await axios.get(
+// Retry util
+async function Retry(fn, retries = 3, delay = 500) {
+	for (let attempt = 1; attempt <= retries; attempt++) {
+		try {
+			return await fn();
+		} catch (e) {
+			const isLast = attempt === retries;
+			const isRetryable = e.response?.status >= 500 || e.code === "CONNECTION ABORTED";
+
+			if (isLast || !isRetryable) throw e;
+			
+			
+			console.log(`Attempt ${attempt} Failed. Retrying in ${delay}ms...`);
+			await new Promise(res => setTimeout(res, delay));
+		}
+	}
+}
+
+async function resolveVanityUrl(vanityName) {
+	return Retry(async () => {
+		const { data } = await axios.get(
 				`https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/`,
 				{
 					params: {
 						key: STEAM_API_KEY,
-						vanityurl: username,
+						vanityurl: vanityName,
 					},
-				}
-			);
+				});
 
-			steamid = resolveResp.data.response.steamid;
-			if (!steamid)
-				return res.status(404).json({ error: "Could not resolve user" });
-		}
+				if (data.response.sucess !== 1) return null;
+			return data.response.steamid;
+	});
+}
 
-		const gamesResp = await axios.get(
+async function getOwnedGames(steamid) {
+	return Retry(async () => {
+		const { data } = await axios.get(
 			`https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/`,
 			{
 				params: {
@@ -38,10 +51,27 @@ app.get("/games", async (req, res) => {
 					include_appinfo: true,
 					include_played_free_games: true,
 				},
-			}
-		);
+			});
+			return data.response.games || [];
+	});
+}
 
-		const games = gamesResp.data.response.games || [];
+app.get("/games", async (req, res) => {
+	const username = req.query.username;
+	if (!username) return res.status(400).json({ error: "Missing username" });
+	try {
+		let steamid = username;
+		if (!/^\d{17}$/.test(username)) {
+			steamid = await resolveVanityUrl(username);
+			
+			if (!steamid)
+				return res.status(404).json({ error: "Could not resolve user" });
+		}
+		
+
+		
+
+		const games = await getOwnedGames(steamid);
 		const formatted = games.map((game) => ({
 			name: game.name,
 			appid: game.appid,
