@@ -72,6 +72,11 @@ app.get("/games", async (req, res) => {
 		
 
 		const games = await getOwnedGames(steamid);
+
+		if (!games || !Array.isArray(games)) {
+			return res.status(500).json({ error: "Fetch failed" });
+		}
+
 		const formatted = games.map((game) => ({
 			name: game.name,
 			appid: game.appid,
