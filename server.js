@@ -19,8 +19,6 @@ app.get("/games", async (req, res) => {
 		}
 		
 
-		
-
 		const games = await getOwnedGames(steamid);
 
 		if (!games || !Array.isArray(games)) {
@@ -35,8 +33,8 @@ app.get("/games", async (req, res) => {
 
 		res.json(formatted);
 	} catch (err) {
-		console.error(err);
-		res.status(500).json({ error: "Server error" });
+		console.error("Server error:", err.message);
+		res.status(500).json({ error: "Internal Server error" });
 	}
 });
 
