@@ -5,7 +5,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const { resolveVanityUrl, getOwnedGames } = require("./service");
-
+const limiter = require("./limiter");
+app.use(limiter);
 app.get("/games", async (req, res) => {
 	const username = req.query.username;
 	if (!username) return res.status(400).json({ error: "Missing username" });
