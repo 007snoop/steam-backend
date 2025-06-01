@@ -1,6 +1,14 @@
 const axios = require("axios");
+const NodeCache = require("node-cache");
 
 const STEAM_API_KEY = process.env.STEAM_API_KEY;
+
+// set cache for 5 minutes
+const cache = new NodeCache({
+	stdTTL: 300, // 5 minutes
+	checkperiod: 60, // Check every minute
+	useClones: false, // Avoid cloning objects for performance
+});
 
 // Retry util
 async function Retry(fn, retries = 3, delay = 500) {
@@ -44,7 +52,11 @@ async function resolveVanityUrl(vanityName) {
 }
 
 async function getOwnedGames(steamid) {
-	return Retry(async () => {
+	// Check cache first
+	const cachedGames = cache.get(steamid);
+	if (cachedGames) return cachedGames;
+	// If not cached, fetch from API
+	const games = await Retry(async () => {
 		const { data } = await axios.get(
 			`https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/`,
 			{
@@ -58,6 +70,10 @@ async function getOwnedGames(steamid) {
 		);
 		return data.response.games || [];
 	});
+    if (Array.isArray(games)) {
+        // Store in cache 
+        cache.set(steamid, games);
+    } return games;
 }
 
 module.exports = {
