@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 const { resolveVanityUrl, getOwnedGames } = require("./service");
 const limiter = require("./limiter");
 app.use(limiter);
-app.set('trust proxy', 1); // trust first proxy
+app.set('trust proxy', true); // trust render proxy
 
 app.get("/games", async (req, res) => {
 	const username = req.query.username;
