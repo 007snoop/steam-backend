@@ -15,8 +15,13 @@ async function Retry(fn, retries = 3, delay = 500) {
 			
 			
 			console.log(`Attempt ${attempt} Failed. Retrying in ${delay}ms...`);
-			await new Promise(res => setTimeout(res, delay));
-		}
+            // Exponential backoff
+			await new Promise(res => setTimeout(res, delay * attempt));
+            if (attempt <= 3) {
+                console.log(`Retrying... Attempt ${attempt + 1}`);
+            } else {
+                console.log(`Max retries reached. Giving up.`);
+            }
 	}
 }
 
